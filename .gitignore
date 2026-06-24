@@ -1,0 +1,35 @@
+# Maven
+target/
+*.jar
+*.war
+*.class
+
+# IDE - IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# IDE - Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# IDE - VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Spring Boot
+spring-boot-starter-*.jar
+
+# Env
+.env
+*.env.local

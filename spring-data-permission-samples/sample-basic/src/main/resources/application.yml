@@ -1,0 +1,26 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:sample;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml,classpath:mybatis/*.xml
+
+# Data permission configuration
+spring.data.permission:
+  enabled: true
+  user-id-header: X-User-Id
+
+logging:
+  level:
+    com.github.steventsai.permission: DEBUG

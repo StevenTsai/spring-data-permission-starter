@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+    Built-in ScopeCondition SQL fragment for data permission filtering.
+
+    Usage in your mapper XML (pass the params map from PermissionQueryBuilder.getSqlParams()):
+    <select id="selectWithScope" resultMap="...">
+        SELECT * FROM your_table
+        WHERE 1=1
+        <include refid="com.github.steventsai.permission.ScopeCondition"/>
+    </select>
+
+    The mapper method should accept a @Param("params") Map<String, Object> parameter
+    containing: authorizedOrgIds, ownerUserId, _orgIdColumn, _ownerUserIdColumn.
+
+    Column names are configured via:
+    - spring.data.permission.org-id-column (default: org_id)
+    - spring.data.permission.owner-user-id-column (default: owner_user_id)
+-->
+<mapper namespace="com.github.steventsai.permission">
+    <sql id="ScopeCondition">
+        <if test="params.authorizedOrgIds != null and params.authorizedOrgIds.size() > 0">
+            and ${params._orgIdColumn} in
+            <foreach collection="params.authorizedOrgIds" item="orgId" open="(" separator="," close=")">
+                #{orgId}
+            </foreach>
+        </if>
+        <if test="params.ownerUserId != null">
+            and ${params._ownerUserIdColumn} = #{params.ownerUserId}
+        </if>
+    </sql>
+</mapper>
