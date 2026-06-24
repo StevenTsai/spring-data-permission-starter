@@ -23,4 +23,4 @@ spring.data.permission:
 
 logging:
   level:
-    com.github.steventsai.permission: DEBUG
+    io.github.steventsai.permission: DEBUG

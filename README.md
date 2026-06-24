@@ -72,7 +72,7 @@ public Order getOrder(Long id, @CurrentPermission PermissionRequest request) {
 
 ```xml
 <dependency>
-    <groupId>com.github.steventsai</groupId>
+    <groupId>io.github.steventsai</groupId>
     <artifactId>spring-data-permission-spring-boot-starter</artifactId>
     <version>0.1.0</version>
 </dependency>
@@ -146,7 +146,7 @@ List<Order> selectWithScope(@Param("params") Map<String, Object> params);
 <select id="selectWithScope" resultMap="BaseResultMap">
     SELECT * FROM biz_order
     WHERE 1=1
-    <include refid="com.github.steventsai.permission.ScopeCondition"/>
+    <include refid="io.github.steventsai.permission.ScopeCondition"/>
 </select>
 ```
 

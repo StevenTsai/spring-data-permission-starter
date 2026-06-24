@@ -9,7 +9,7 @@
     <select id="selectWithScope" resultMap="...">
         SELECT * FROM your_table
         WHERE 1=1
-        <include refid="com.github.steventsai.permission.ScopeCondition"/>
+        <include refid="io.github.steventsai.permission.ScopeCondition"/>
     </select>
 
     The mapper method should accept a @Param("params") Map<String, Object> parameter
@@ -19,7 +19,7 @@
     - spring.data.permission.org-id-column (default: org_id)
     - spring.data.permission.owner-user-id-column (default: owner_user_id)
 -->
-<mapper namespace="com.github.steventsai.permission">
+<mapper namespace="io.github.steventsai.permission">
     <sql id="ScopeCondition">
         <if test="params.authorizedOrgIds != null and params.authorizedOrgIds.size() > 0">
             and ${params._orgIdColumn} in
