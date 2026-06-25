@@ -6,7 +6,7 @@
 
     <groupId>io.github.steventsai</groupId>
     <artifactId>spring-data-permission-starter</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.3.0</version>
     <packaging>pom</packaging>
 
     <name>spring-data-permission-starter</name>
@@ -33,12 +33,31 @@
         <url>https://github.com/StevenTsai/spring-data-permission-starter</url>
     </scm>
 
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://central.sonatype.com/api/v1/publisher/default</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://central.sonatype.com/api/v1/publisher/default</url>
+        </repository>
+    </distributionManagement>
+
     <modules>
         <module>spring-data-permission-core</module>
         <module>spring-data-permission-mybatis</module>
         <module>spring-data-permission-spring-boot-starter</module>
-        <module>spring-data-permission-samples</module>
     </modules>
+
+    <profiles>
+        <profile>
+            <id>with-samples</id>
+            <modules>
+                <module>spring-data-permission-samples</module>
+            </modules>
+        </profile>
+    </profiles>
 
     <properties>
         <java.version>17</java.version>
@@ -166,6 +185,60 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.6.3</version>
+                <configuration>
+                    <doclint>none</doclint>
+                    <quiet>true</quiet>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.11.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <publishingServerId>ossrh</publishingServerId>
+                    <autoPublish>false</autoPublish>
+                </configuration>
             </plugin>
         </plugins>
     </build>

@@ -10,9 +10,9 @@ import java.lang.annotation.Target;
  * <p>
  * The framework resolves the current user's identity from the HTTP request
  * (e.g. from session token, JWT, or custom header) and creates a
- * {@link PermissionRequest} instance automatically.
+ * {@link io.github.steventsai.permission.PermissionRequest} instance automatically.
  *
- * <h3>Usage</h3>
+ * <p><b>Usage:</b>
  * <pre>{@code
  * @GetMapping("/orders")
  * public List<Order> listOrders(@CurrentPermission PermissionRequest request) {

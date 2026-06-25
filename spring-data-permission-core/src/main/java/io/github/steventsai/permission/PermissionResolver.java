@@ -7,7 +7,7 @@ package io.github.steventsai.permission;
  * implementation that knows how to look up the current user's data scope and
  * resolve accessible organization IDs.
  *
- * <h3>Example</h3>
+ * <p><b>Example:</b>
  * <pre>{@code
  * @Component
  * public class MyPermissionResolver implements PermissionResolver {

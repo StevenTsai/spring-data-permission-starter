@@ -33,3 +33,7 @@ spring-boot-starter-*.jar
 # Env
 .env
 *.env.local
+
+# Generated files
+*.zip
+.flattened-pom.xml

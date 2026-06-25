@@ -12,7 +12,7 @@ import java.util.Map;
  * It collects key-value pairs into a parameter map. The actual SQL condition
  * assembly happens in your mapper XML, not here.
  *
- * <h3>Usage</h3>
+ * <p><b>Usage:</b>
  * <pre>{@code
  * Map<String, Object> params = permissionHelper.createQuery(Order.class, request)
  *     .param("status", "active")

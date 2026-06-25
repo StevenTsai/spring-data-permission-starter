@@ -4,7 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [0.1.0-SNAPSHOT] - Unreleased
+## [0.3.0] - 2026-06-25
+
+### Fixed
+
+- Upgrade `central-publishing-maven-plugin` to 0.11.0 to fix Maven Central validation errors
+- Exclude sample modules from default deployment to Maven Central
+
+## [0.2.0] - 2026-06-25
+
+### Fixed
+
+- Upgrade `central-publishing-maven-plugin` from 0.4.0 to fix multi-module artifact path issues
+
+## [0.1.0] - 2026-06-25
 
 ### Added
 

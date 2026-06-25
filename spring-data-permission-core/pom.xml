@@ -7,31 +7,56 @@
     <parent>
         <groupId>io.github.steventsai</groupId>
         <artifactId>spring-data-permission-starter</artifactId>
-        <version>0.1.0-SNAPSHOT</version>
+        <version>0.3.0</version>
     </parent>
 
     <artifactId>spring-data-permission-core</artifactId>
     <name>spring-data-permission-core</name>
     <description>Core abstractions for data permission: DataScope, PermissionResolver, DataPermissionHelper</description>
+    <url>https://github.com/StevenTsai/spring-data-permission-starter</url>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>steventsai</id>
+            <name>Steven Tsai</name>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/StevenTsai/spring-data-permission-starter.git</connection>
+        <developerConnection>scm:git:ssh://github.com:StevenTsai/spring-data-permission-starter.git</developerConnection>
+        <url>https://github.com/StevenTsai/spring-data-permission-starter</url>
+    </scm>
 
     <dependencies>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
+            <version>6.1.6</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
+            <version>6.1.6</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <version>5.10.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
+            <version>3.25.3</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

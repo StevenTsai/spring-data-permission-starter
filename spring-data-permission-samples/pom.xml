@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.github.steventsai</groupId>
         <artifactId>spring-data-permission-starter</artifactId>
-        <version>0.1.0-SNAPSHOT</version>
+        <version>0.3.0</version>
     </parent>
 
     <artifactId>spring-data-permission-samples</artifactId>
@@ -18,5 +18,11 @@
     <modules>
         <module>sample-basic</module>
     </modules>
+
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.install.skip>true</maven.install.skip>
+    </properties>
+
 
 </project>

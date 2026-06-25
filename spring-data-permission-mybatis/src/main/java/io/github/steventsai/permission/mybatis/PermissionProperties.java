@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * Configuration properties for spring-data-permission.
  *
- * <h3>Example (application.yml)</h3>
+ * <p><b>Example (application.yml):</b>
  * <pre>{@code
  * spring:
  *   data:
