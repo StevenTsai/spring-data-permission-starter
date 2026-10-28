@@ -23,6 +23,9 @@ import java.util.Map;
  * orderMapper.selectWithScope(params);
  * }</pre>
  *
+ * <p>Permission keys are reserved and cannot be overridden by business
+ * parameters. Attempting to set one throws {@link IllegalArgumentException}.
+ *
  * @param <T> the entity type
  */
 public interface PermissionQueryBuilder<T> {
@@ -38,6 +41,7 @@ public interface PermissionQueryBuilder<T> {
      * @param key   the parameter key (referenced in mapper XML as params.{key})
      * @param value the parameter value (null values are ignored)
      * @return this builder for chaining
+     * @throws IllegalArgumentException when {@code key} is a reserved permission key
      */
     PermissionQueryBuilder<T> param(String key, Object value);
 
@@ -49,6 +53,7 @@ public interface PermissionQueryBuilder<T> {
      *
      * @param params the parameters to add (null is treated as empty map)
      * @return this builder for chaining
+     * @throws IllegalArgumentException when any key is a reserved permission key
      */
     PermissionQueryBuilder<T> params(Map<String, Object> params);
 
@@ -58,11 +63,17 @@ public interface PermissionQueryBuilder<T> {
      * <p>
      * The returned map always contains permission parameters:
      * <ul>
-     *   <li>{@code authorizedOrgIds} — List of accessible organization IDs (null for ALL scope)</li>
+     *   <li>{@code authorizedOrgIds} — List of accessible organization IDs (null for ALL/SELF)</li>
      *   <li>{@code ownerUserId} — The owner user ID (only for SELF scope)</li>
      *   <li>{@code _orgIdColumn} — Column name for org ID filtering</li>
      *   <li>{@code _ownerUserIdColumn} — Column name for owner user ID filtering</li>
+     *   <li>{@code _scope} — Scope code for logging/debugging</li>
+     *   <li>{@code _allScope} / {@code _selfScope} — Scope flags used by the SQL fragment</li>
+     *   <li>{@code _denyAll} — Fail-closed flag for empty organization scopes</li>
      * </ul>
+     *
+     * <p>The returned map is an immutable snapshot. Later mutations of this
+     * builder do not affect a previously returned map.
      *
      * @return an unmodifiable parameter map ready to be passed to mapper methods
      */

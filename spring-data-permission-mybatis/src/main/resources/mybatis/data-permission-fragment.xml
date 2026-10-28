@@ -13,22 +13,31 @@
     </select>
 
     The mapper method should accept a @Param("params") Map<String, Object> parameter
-    containing: authorizedOrgIds, ownerUserId, _orgIdColumn, _ownerUserIdColumn.
+    containing the parameters produced by PermissionSqlParamAssembler.
 
-    Column names are configured via:
-    - spring.data.permission.org-id-column (default: org_id)
-    - spring.data.permission.owner-user-id-column (default: owner_user_id)
+    Safety properties:
+    - Empty organization lists produce "and 1=0" (fail closed), never an
+      unfiltered query.
+    - ALL and SELF modes are selected by explicit booleans rather than by a
+      missing/empty list.
+    - Column names are validated in PermissionSqlParamAssembler before this
+      fragment interpolates them with ${...}.
 -->
 <mapper namespace="io.github.steventsai.permission">
     <sql id="ScopeCondition">
-        <if test="params.authorizedOrgIds != null and params.authorizedOrgIds.size() > 0">
+        <if test="params._denyAll">
+            and 1=0
+        </if>
+        <if test="params._selfScope">
+            and ${params._ownerUserIdColumn} = #{params.ownerUserId}
+        </if>
+        <if test="!params._allScope and !params._selfScope
+                  and params.authorizedOrgIds != null
+                  and params.authorizedOrgIds.size() > 0">
             and ${params._orgIdColumn} in
             <foreach collection="params.authorizedOrgIds" item="orgId" open="(" separator="," close=")">
                 #{orgId}
             </foreach>
-        </if>
-        <if test="params.ownerUserId != null">
-            and ${params._ownerUserIdColumn} = #{params.ownerUserId}
         </if>
     </sql>
 </mapper>

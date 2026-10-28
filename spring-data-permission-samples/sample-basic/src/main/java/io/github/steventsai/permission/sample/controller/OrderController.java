@@ -27,8 +27,10 @@ public class OrderController {
     /**
      * List orders with permission filtering.
      * <p>
-     * The @CurrentPermission annotation automatically resolves the PermissionRequest
-     * from the HTTP request header "X-User-Id".
+     * The @CurrentPermission annotation resolves the PermissionRequest from the
+     * HTTP request header "X-User-Id". This sample explicitly enables the demo
+     * header resolver; production applications should replace it with JWT/session
+     * authentication.
      *
      * <h3>Test with curl:</h3>
      * <pre>
@@ -50,19 +52,11 @@ public class OrderController {
     /**
      * Get a single order with access check.
      * <p>
-     * Returns 403 if the user doesn't have permission to access this order.
+     * Returns 404 for both missing and unauthorized orders (anti-enumeration).
      */
     @GetMapping("/{id}")
     public Order getOrder(@PathVariable("id") Long id,
                           @CurrentPermission PermissionRequest request) {
         return orderService.getOrder(id, request);
-    }
-
-    /**
-     * List all orders without permission filtering (admin use).
-     */
-    @GetMapping("/all")
-    public List<Order> listAll() {
-        return orderService.listAllOrders();
     }
 }

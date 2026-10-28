@@ -39,7 +39,8 @@ public List<Order> listOrders(@CurrentPermission PermissionRequest request) {
 // ✅ 单条校验一行代码，无权自动抛 AccessDeniedException
 public Order getOrder(Long id, @CurrentPermission PermissionRequest request) {
     Order order = orderMapper.selectById(id);
-    permissionHelper.checkAccess(request, order.getOrgId(), order.getOwnerUserId());
+    permissionHelper.checkAccess(request,
+            DataPermissionTarget.of(order.getOrgId(), order.getOwnerUserId()));
     return order;
 }
 ```
@@ -53,7 +54,8 @@ public Order getOrder(Long id, @CurrentPermission PermissionRequest request) {
 | **列表过滤** | 自动在 SQL 中注入 `WHERE org_id IN (...)` 或 `WHERE owner_user_id = ?` |
 | **单条校验** | 检查用户是否有权访问某条记录，无权抛 `AccessDeniedException` |
 | **4 级标准范围** | `ALL` 全部 / `OWN_ORG` 本组织 / `OWN_AND_CHILDREN` 本组织+下级 / `SELF` 仅本人 |
-| **列名可配** | 组织 ID 列名、拥有者列名通过配置文件自定义，无需改代码 |
+| **失败关闭** | 组织范围为空时生成 `and 1=0`，绝不退化成“查全部” |
+| **列名可配** | 全局配置 + `@DataPermissionTable` 实体级覆盖，无需改代码 |
 | **零侵入** | 业务代码不引入任何权限注解或基类，只需注入 `DataPermissionHelper` |
 
 ## 和其他方案的对比
@@ -74,7 +76,7 @@ public Order getOrder(Long id, @CurrentPermission PermissionRequest request) {
 <dependency>
     <groupId>io.github.steventsai</groupId>
     <artifactId>spring-data-permission-spring-boot-starter</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
 </dependency>
 ```
 
@@ -113,9 +115,9 @@ public List<Order> listOrders(@CurrentPermission PermissionRequest request) {
 }
 ```
 
-> **生产环境提示**：默认从 HTTP header `X-User-Id` 提取用户 ID，仅限演示。生产环境应替换为 JWT / Session —— 继承 `PermissionArgumentResolver` 重写 `resolveArgument` 即可。
+> **生产环境提示**：基于 HTTP header `X-User-Id` 的解析器仅限演示，且从 0.4.0 起**默认关闭**。演示/测试需显式配置 `spring.data.permission.header-resolver-enabled: true`；生产环境应替换为 JWT / Session —— 继承 `PermissionArgumentResolver` 重写 `resolveArgument`，或提供自定义 `PermissionRequestFactory`。
 
-> **返回码约定**：身份信息缺失或格式非法时，框架默认返回 `400 Bad Request`；身份已识别但无数据权限时，返回 `403 Forbidden`。
+> **返回码约定**：身份信息缺失或格式非法时，框架默认返回 `400 Bad Request`；身份已识别但无数据权限时，`AccessDeniedException` 默认标注为 `403 Forbidden`。示例工程为避免泄露记录是否存在，将其统一映射为 `404 Not Found`，业务可自行覆盖。
 
 ### 4. Service 层
 
@@ -129,7 +131,8 @@ public List<Order> listOrders(PermissionRequest request) {
 // 单条校验：无权自动抛 AccessDeniedException
 public Order getOrder(Long id, PermissionRequest request) {
     Order order = orderMapper.selectById(id);
-    permissionHelper.checkAccess(request, order.getOrgId(), order.getOwnerUserId());
+    permissionHelper.checkAccess(request,
+            DataPermissionTarget.of(order.getOrgId(), order.getOwnerUserId()));
     return order;
 }
 ```
@@ -157,10 +160,23 @@ spring:
   data:
     permission:
       enabled: true                        # 是否启用，默认 true
+      header-resolver-enabled: false       # 是否注册 header 解析器，默认 false（演示/测试才开启）
       user-id-header: X-User-Id            # 提取用户 ID 的 HTTP header
       org-id-column: org_id                # 组织 ID 列名，默认 org_id
       owner-user-id-column: owner_user_id  # 拥有者用户 ID 列名，默认 owner_user_id
+      max-org-ids: 1000                    # IN (...) 的最大组织数，0 表示不限制
 ```
+
+如需按实体覆盖列名：
+
+```java
+@DataPermissionTable(orgIdColumn = "dept_id", ownerUserIdColumn = "creator_id")
+public class Order { ... }
+```
+
+> 组织范围为空（`accessibleOrgIds` 为空列表）表示 **deny-all**，会生成 `and 1=0`，不会返回全部数据。需要“全部数据”请使用 `ALL` scope。
+>
+> `authorizedOrgIds`、`ownerUserId` 和 `_*` 前缀参数属于框架保留键，业务参数无法覆盖。
 
 MyBatis 需要扫描框架的 SQL fragment：
 
@@ -174,7 +190,7 @@ mybatis:
 ## 架构设计
 
 ```
-HTTP 请求 (X-User-Id header)
+HTTP 请求 (可选 X-User-Id header，需显式开启)
     ↓
 PermissionArgumentResolver → PermissionRequest
     ↓
@@ -189,14 +205,15 @@ Mapper XML <include ScopeCondition> → 自动注入 WHERE 条件
 
 ## 示例项目
 
-- [sample-basic](spring-data-permission-samples/sample-basic/) — 使用 H2 内存数据库的完整示例，含 4 种用户权限演示和集成测试
+- [sample-basic](spring-data-permission-samples/sample-basic/) — 使用 H2 内存数据库的完整示例，含 ALL / OWN_ORG / OWN_AND_CHILDREN / SELF / deny-all 五种用户权限演示和集成测试
 
 ## 适用边界
 
 - 适用于 `Spring Boot + MyBatis XML` 的显式 SQL 场景
 - 当前设计强调“显式 `<include>` 注入权限条件”，不依赖拦截器或 ThreadLocal 魔法
 - 非 Web 场景也可使用 `DataPermissionHelper`，但需要你自己构造 `PermissionRequest`
-- 如果你使用自定义认证体系，建议替换默认 `PermissionArgumentResolver`
+- 如果你使用自定义认证体系，建议替换默认 `PermissionArgumentResolver`；自定义 `PermissionRequest` 子类可通过 `PermissionRequestFactory` 注入
+- 自定义 `DataScope` 默认按组织范围处理；若语义等同 ALL/SELF，可覆盖 `isAll()` / `isSelf()`
 - 如果查询不是通过 XML `@Param("params") Map<String, Object>` 传参，本项目不会自动改写你的 SQL
 
 ## 常见问题
@@ -213,8 +230,29 @@ A: 确认 `spring.data.permission.org-id-column` 和 `owner-user-id-column` 配�
 **Q: 为什么请求直接返回 400？**
 A: 这表示身份信息未能解析成功，例如缺少 `X-User-Id` header 或用户 ID 不是数字；这和“已登录但无权限”的 403 是两类问题。
 
+**Q: `@CurrentPermission` 参数一直是 null / 解析器不生效？**
+A: 0.4.0 起 header 解析器默认关闭。演示或测试请设置 `spring.data.permission.header-resolver-enabled: true`；生产环境请注册自定义 `PermissionArgumentResolver`。
+
 **Q: OWN_ORG scope 报 `accessibleOrgIds must not be null`**
-A: `PermissionResolver.resolve()` 中必须为 OWN_ORG / OWN_AND_CHILDREN scope 设置 `accessibleOrgIds`。
+A: `PermissionResolver.resolve()` 中必须为 OWN_ORG / OWN_AND_CHILDREN scope 设置 `accessibleOrgIds`。空列表是合法的 deny-all；`null` 才是配置遗漏。
+
+**Q: 组织范围为空时为什么查到 0 条，而不是全部？**
+A: 这是 0.4.0 起的失败关闭（fail-closed）设计：空列表生成 `and 1=0`。需要全部数据请显式使用 `ALL` scope。
+
+**Q: 报 `accessibleOrgIds contains ... entries, which exceeds ... max-org-ids`？**
+A: 单次 `IN (...)` 的组织数超过 `spring.data.permission.max-org-ids`（默认 1000）。请缩小范围、显式调大限制，或改用子查询方案。
+
+**Q: `StandardDataScope.fromCode()` 抛 `IllegalArgumentException`？**
+A: 0.4.0 起空白或未知 scope code 会快速失败，不再返回 `null`。请检查数据库中的 scope 值，统一为 `ALL` / `OWN_ORG` / `OWN_AND_CHILDREN` / `SELF`（大小写不敏感）。
+
+## 从 0.3.x 升级
+
+- header 解析器改为显式开启：`spring.data.permission.header-resolver-enabled=true`
+- 未知或空白 scope code 现在抛异常
+- 空组织列表语义由“不过滤”改为 deny-all
+- 业务参数不能覆盖 `authorizedOrgIds` / `ownerUserId` / `_*` 保留键
+- 实体类可用 `@DataPermissionTable` 覆盖列名
+- 单条校验推荐使用 `DataPermissionTarget.of(orgId, ownerId)` 避免参数顺序错误
 
 ## License
 

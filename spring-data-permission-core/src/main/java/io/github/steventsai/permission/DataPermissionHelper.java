@@ -7,7 +7,7 @@ package io.github.steventsai.permission;
  * <ul>
  *   <li><b>List queries</b> — {@link #createQuery(Class, PermissionRequest)} builds a query
  *       with automatic permission filtering at the SQL layer</li>
- *   <li><b>Single-record checks</b> — {@link #checkAccess(PermissionRequest, Long, Long)}
+ *   <li><b>Single-record checks</b> — {@link #checkAccess(PermissionRequest, DataPermissionTarget)}
  *       validates whether the current user can access a specific record</li>
  * </ul>
  */
@@ -16,8 +16,10 @@ public interface DataPermissionHelper {
     /**
      * Create a permission-aware query builder for list queries.
      * <p>
-     * The returned builder will automatically inject permission conditions
-     * (org_id IN (...), owner_user_id = ?) into the SQL WHERE clause.
+     * The returned builder contains permission parameters consumed by the
+     * built-in {@code ScopeCondition} SQL fragment. The entity class may carry a
+     * {@link DataPermissionTable} annotation to override the configured column
+     * names for that entity.
      *
      * @param entityClass the entity class being queried
      * @param request     the permission request
@@ -31,6 +33,19 @@ public interface DataPermissionHelper {
      * <p>
      * Throws {@link io.github.steventsai.permission.exception.AccessDeniedException}
      * if access is denied.
+     *
+     * @param request the permission request
+     * @param target  the row ownership attributes
+     */
+    default void checkAccess(PermissionRequest request, DataPermissionTarget target) {
+        checkAccess(request, target.orgId(), target.ownerId());
+    }
+
+    /**
+     * Check whether the current user can access a specific record.
+     * <p>
+     * Prefer {@link #checkAccess(PermissionRequest, DataPermissionTarget)} to
+     * avoid argument-order mistakes.
      *
      * @param request   the permission request
      * @param orgId     the organization ID the record belongs to (nullable for SELF-only records)

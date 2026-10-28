@@ -17,23 +17,9 @@
         id, order_no, customer_name, status, org_id, owner_user_id
     </sql>
 
-    <!-- No permission filtering (admin/internal use) -->
-    <select id="selectAll" resultMap="BaseResultMap">
-        SELECT <include refid="BaseColumnList"/>
-        FROM biz_order
-    </select>
-
     <!-- With permission filtering (user-facing) -->
     <select id="selectWithScope" resultMap="BaseResultMap">
         SELECT <include refid="BaseColumnList"/>
-        FROM biz_order
-        WHERE 1=1
-        <include refid="io.github.steventsai.permission.ScopeCondition"/>
-    </select>
-
-    <!-- Count with permission filtering -->
-    <select id="countWithScope" resultType="long">
-        SELECT COUNT(*)
         FROM biz_order
         WHERE 1=1
         <include refid="io.github.steventsai.permission.ScopeCondition"/>

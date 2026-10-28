@@ -22,6 +22,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * - User 2 (manager): OWN_ORG scope, org 1 — sees 3 orders
  * - User 3 (manager): OWN_AND_CHILDREN scope, org 1 (children: org 2) — sees 5 orders
  * - User 4 (staff): SELF scope — sees 2 own orders
+ * - User 5 (contractor): OWN_ORG scope with no orgs — deny-all
+ * - Unknown users: deny-all
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -102,9 +104,10 @@ class OrderIntegrationTest {
 
     @Test
     void getOrder_manager_cannotAccessOtherOrgOrder() throws Exception {
-        // User 2 has OWN_ORG scope for org 1, order 4 belongs to org 2
+        // User 2 has OWN_ORG scope for org 1, order 4 belongs to org 2.
+        // 404 (not 403) avoids leaking the existence of other orgs' records.
         mockMvc.perform(get("/api/orders/4").header("X-User-Id", "2"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -119,16 +122,37 @@ class OrderIntegrationTest {
     void getOrder_staff_cannotAccessOtherOrder() throws Exception {
         // User 4 has SELF scope, order 1 has ownerUserId=1
         mockMvc.perform(get("/api/orders/1").header("X-User-Id", "4"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isNotFound());
     }
 
-    // --- List all (no permission filtering) ---
+    @Test
+    void getOrder_missingOrder_returnsNotFound() throws Exception {
+        mockMvc.perform(get("/api/orders/999").header("X-User-Id", "1"))
+                .andExpect(status().isNotFound());
+    }
+
+    // --- Deny-all scopes ---
 
     @Test
-    void listAll_returnsAllOrdersRegardlessOfPermission() throws Exception {
-        mockMvc.perform(get("/api/orders/all"))
+    void listOrders_denyAllUser_seesNoOrders() throws Exception {
+        // User 5 has an organization scope with an empty org list.
+        mockMvc.perform(get("/api/orders").header("X-User-Id", "5"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(6));
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void getOrder_denyAllUser_returnsNotFound() throws Exception {
+        mockMvc.perform(get("/api/orders/1").header("X-User-Id", "5"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void listOrders_unknownUser_seesNoOrders() throws Exception {
+        // Unknown users default to a deny-all context, never unrestricted access.
+        mockMvc.perform(get("/api/orders").header("X-User-Id", "999"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 
 }

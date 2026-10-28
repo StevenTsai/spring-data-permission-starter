@@ -7,12 +7,12 @@
     <parent>
         <groupId>io.github.steventsai</groupId>
         <artifactId>spring-data-permission-starter</artifactId>
-        <version>0.3.0</version>
+        <version>0.4.0</version>
     </parent>
 
     <artifactId>spring-data-permission-spring-boot-starter</artifactId>
     <name>spring-data-permission-spring-boot-starter</name>
-    <description>Spring Boot Starter for data-permission. Add this dependency to enable row-level data permission.</description>
+    <description>Spring Boot Starter for row-level data permission with Spring Boot + MyBatis</description>
     <url>https://github.com/StevenTsai/spring-data-permission-starter</url>
 
     <licenses>
@@ -35,11 +35,20 @@
         <url>https://github.com/StevenTsai/spring-data-permission-starter</url>
     </scm>
 
+    <properties>
+        <jacoco.skip>true</jacoco.skip>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>io.github.steventsai</groupId>
             <artifactId>spring-data-permission-mybatis</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <!-- The starter is the convenient entry point, so it brings MyBatis too. -->
+        <dependency>
+            <groupId>org.mybatis.spring.boot</groupId>
+            <artifactId>mybatis-spring-boot-starter</artifactId>
         </dependency>
     </dependencies>
 

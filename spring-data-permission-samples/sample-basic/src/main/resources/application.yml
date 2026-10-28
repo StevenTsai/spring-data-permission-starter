@@ -14,12 +14,16 @@ spring:
       data-locations: classpath:data.sql
 
 mybatis:
-  mapper-locations: classpath:mapper/*.xml,classpath:mybatis/*.xml
+  mapper-locations: classpath*:mapper/*.xml,classpath*:mybatis/*.xml
 
 # Data permission configuration
 spring.data.permission:
   enabled: true
+  # Demo only: the X-User-Id header is spoofable. A production application
+  # should provide a custom PermissionArgumentResolver backed by JWT/session auth.
+  header-resolver-enabled: true
   user-id-header: X-User-Id
+  max-org-ids: 1000
 
 logging:
   level:

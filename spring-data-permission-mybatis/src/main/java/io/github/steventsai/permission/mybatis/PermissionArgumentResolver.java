@@ -8,11 +8,17 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
+import java.util.Objects;
+
 /**
  * Resolves {@link PermissionRequest} parameters annotated with {@link CurrentPermission}.
  * <p>
- * By default, extracts the user ID from the HTTP header "X-User-Id".
- * Override this class to implement custom authentication logic (e.g. JWT parsing).
+ * This resolver is a <strong>demo/opt-in</strong> adapter: it extracts the user
+ * ID from one HTTP header and must be enabled explicitly with
+ * {@code spring.data.permission.header-resolver-enabled=true}. Never enable it
+ * in production without an upstream gateway that strips and rewrites the header,
+ * because clients can otherwise spoof their identity. Prefer a custom resolver
+ * backed by your JWT/session authentication for production.
  * <p>
  * Throws {@link MissingPermissionException} (HTTP 400) when the header is missing or invalid.
  */
@@ -21,6 +27,7 @@ public class PermissionArgumentResolver implements HandlerMethodArgumentResolver
     public static final String DEFAULT_USER_ID_HEADER = "X-User-Id";
 
     private final String userIdHeader;
+    private final PermissionRequestFactory requestFactory;
 
     public PermissionArgumentResolver() {
         this(DEFAULT_USER_ID_HEADER);
@@ -30,20 +37,30 @@ public class PermissionArgumentResolver implements HandlerMethodArgumentResolver
      * @param userIdHeader the HTTP header name containing the user ID
      */
     public PermissionArgumentResolver(String userIdHeader) {
-        this.userIdHeader = userIdHeader;
+        this(userIdHeader, PermissionRequestFactory.defaultFactory());
+    }
+
+    /**
+     * @param userIdHeader   the HTTP header name containing the user ID
+     * @param requestFactory factory used to create the request object
+     */
+    public PermissionArgumentResolver(String userIdHeader, PermissionRequestFactory requestFactory) {
+        this.userIdHeader = Objects.requireNonNull(userIdHeader, "userIdHeader must not be null");
+        this.requestFactory = Objects.requireNonNull(requestFactory, "requestFactory must not be null");
     }
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
         return parameter.hasParameterAnnotation(CurrentPermission.class)
-                && PermissionRequest.class.isAssignableFrom(parameter.getParameterType());
+                && PermissionRequest.class.isAssignableFrom(parameter.getParameterType())
+                && requestFactory.supports(parameter.getParameterType());
     }
 
     @Override
     public Object resolveArgument(MethodParameter parameter,
-                                   ModelAndViewContainer mavContainer,
-                                   NativeWebRequest webRequest,
-                                   WebDataBinderFactory binderFactory) {
+                                  ModelAndViewContainer mavContainer,
+                                  NativeWebRequest webRequest,
+                                  WebDataBinderFactory binderFactory) {
         String userIdStr = webRequest.getHeader(userIdHeader);
         if (userIdStr == null || userIdStr.isBlank()) {
             throw new MissingPermissionException(
@@ -54,11 +71,13 @@ public class PermissionArgumentResolver implements HandlerMethodArgumentResolver
         Long userId;
         try {
             userId = Long.parseLong(userIdStr.trim());
-        } catch (NumberFormatException e) {
+        } catch (NumberFormatException ex) {
+            // Do not echo the raw header value; it may contain sensitive or attacker-controlled data.
             throw new MissingPermissionException(
-                    "Invalid user ID in request header '" + userIdHeader + "': " + userIdStr, e);
+                    "Invalid user ID in request header '" + userIdHeader
+                            + "'. Expected a numeric user ID.", ex);
         }
 
-        return new DefaultPermissionRequest(userId);
+        return requestFactory.create(userId, parameter);
     }
 }

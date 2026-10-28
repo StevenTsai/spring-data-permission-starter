@@ -1,8 +1,10 @@
 package io.github.steventsai.permission.sample.service;
 
 import io.github.steventsai.permission.DataPermissionHelper;
+import io.github.steventsai.permission.DataPermissionTarget;
 import io.github.steventsai.permission.PermissionRequest;
 import io.github.steventsai.permission.sample.entity.Order;
+import io.github.steventsai.permission.sample.exception.OrderNotFoundException;
 import io.github.steventsai.permission.sample.mapper.OrderMapper;
 import org.springframework.stereotype.Service;
 
@@ -37,24 +39,18 @@ public class OrderService {
     /**
      * Get a single order with access check.
      * <p>
-     * Throws AccessDeniedException if the user doesn't have permission.
+     * Missing and unauthorized records both produce 404 in this sample to avoid
+     * leaking the existence of records the caller cannot access.
      */
     public Order getOrder(Long id, PermissionRequest request) {
         Order order = orderMapper.selectById(id);
         if (order == null) {
-            return null;
+            throw new OrderNotFoundException();
         }
 
-        // Check access: throws AccessDeniedException if denied
-        permissionHelper.checkAccess(request, order.getOrgId(), order.getOwnerUserId());
+        permissionHelper.checkAccess(request,
+                new DataPermissionTarget(order.getOrgId(), order.getOwnerUserId()));
 
         return order;
-    }
-
-    /**
-     * List all orders without permission filtering (admin use).
-     */
-    public List<Order> listAllOrders() {
-        return orderMapper.selectAll();
     }
 }
