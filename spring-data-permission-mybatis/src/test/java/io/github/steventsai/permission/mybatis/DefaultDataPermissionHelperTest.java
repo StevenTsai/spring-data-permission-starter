@@ -1,6 +1,7 @@
 package io.github.steventsai.permission.mybatis;
 
 import io.github.steventsai.permission.DataPermissionContext;
+import io.github.steventsai.permission.DataPermissionTarget;
 import io.github.steventsai.permission.PermissionQueryBuilder;
 import io.github.steventsai.permission.PermissionRequest;
 import io.github.steventsai.permission.PermissionResolver;
@@ -195,5 +196,82 @@ class DefaultDataPermissionHelperTest {
         DataPermissionContext result = helper.resolveContext(request);
 
         assertThat(result).isSameAs(expected);
+    }
+
+    @Test
+    void resolveContext_nullRequest_throwsException() {
+        assertThatThrownBy(() -> helper.resolveContext(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("request");
+    }
+
+    @Test
+    void resolveContext_resolverReturnsNull_throwsException() {
+        when(permissionResolver.resolve(any())).thenReturn(null);
+
+        assertThatThrownBy(() -> helper.resolveContext(new DefaultPermissionRequest(1L)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("returned null");
+    }
+
+    @Test
+    void constructor_nullResolver_throwsException() {
+        assertThatThrownBy(() -> new DefaultDataPermissionHelper(null, paramAssembler))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("permissionResolver");
+    }
+
+    @Test
+    void constructor_nullAssembler_throwsException() {
+        assertThatThrownBy(() -> new DefaultDataPermissionHelper(permissionResolver, null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("paramAssembler");
+    }
+
+    @Test
+    void createQuery_nullEntityClass_throwsException() {
+        assertThatThrownBy(() -> helper.createQuery(null, new DefaultPermissionRequest(1L)))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("entityClass");
+    }
+
+    @Test
+    void checkAccess_targetOverload_delegatesToOrgAndOwnerCheck() {
+        when(permissionResolver.resolve(any())).thenReturn(
+                DataPermissionContext.builder()
+                        .operatorUserId(1L)
+                        .scope(StandardDataScope.OWN_ORG)
+                        .accessibleOrgIds(Arrays.asList(10L, 20L))
+                        .build());
+
+        PermissionRequest request = new DefaultPermissionRequest(1L);
+        helper.checkAccess(request, DataPermissionTarget.of(10L, null));
+
+        assertThatThrownBy(() -> helper.checkAccess(request, DataPermissionTarget.of(99L, null)))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void checkAccess_nullTarget_throwsException() {
+        assertThatThrownBy(() -> helper.checkAccess(new DefaultPermissionRequest(1L), (DataPermissionTarget) null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("target");
+    }
+
+    @Test
+    void checkAccess_selfScope_usesContextOwnerInsteadOfOperator() {
+        when(permissionResolver.resolve(any())).thenReturn(
+                DataPermissionContext.builder()
+                        .operatorUserId(4L)
+                        .scope(StandardDataScope.SELF)
+                        .ownerUserId(8L)
+                        .build());
+
+        PermissionRequest request = new DefaultPermissionRequest(4L);
+        // The row belongs to the context owner (8), not the operator (4).
+        helper.checkAccess(request, DataPermissionTarget.of(null, 8L));
+
+        assertThatThrownBy(() -> helper.checkAccess(request, DataPermissionTarget.of(null, 4L)))
+                .isInstanceOf(AccessDeniedException.class);
     }
 }

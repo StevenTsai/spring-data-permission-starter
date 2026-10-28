@@ -1,6 +1,7 @@
 package io.github.steventsai.permission.sample.config;
 
 import io.github.steventsai.permission.DataPermissionContext;
+import io.github.steventsai.permission.DataScope;
 import io.github.steventsai.permission.PermissionRequest;
 import io.github.steventsai.permission.PermissionResolver;
 import io.github.steventsai.permission.StandardDataScope;
@@ -27,12 +28,14 @@ public class MyPermissionResolver implements PermissionResolver {
      * - User 2 (manager): OWN_ORG scope, belongs to org 1
      * - User 3 (manager): OWN_AND_CHILDREN scope, belongs to org 1 (has child org 2)
      * - User 4 (staff): SELF scope, belongs to org 2
+     * - User 5 (contractor): OWN_ORG scope with no organizations (deny-all)
      */
     private static final Map<Long, UserPermission> USER_PERMISSIONS = Map.of(
-            1L, new UserPermission(StandardDataScope.ALL, 1L, List.of(1L, 2L, 3L)),
-            2L, new UserPermission(StandardDataScope.OWN_ORG, 1L, List.of(1L)),
-            3L, new UserPermission(StandardDataScope.OWN_AND_CHILDREN, 1L, List.of(1L, 2L)),
-            4L, new UserPermission(StandardDataScope.SELF, 2L, Collections.emptyList())
+            1L, new UserPermission(StandardDataScope.ALL, List.of()),
+            2L, new UserPermission(StandardDataScope.OWN_ORG, List.of(1L)),
+            3L, new UserPermission(StandardDataScope.OWN_AND_CHILDREN, List.of(1L, 2L)),
+            4L, new UserPermission(StandardDataScope.SELF, Collections.emptyList()),
+            5L, new UserPermission(StandardDataScope.OWN_ORG, Collections.emptyList())
     );
 
     @Override
@@ -41,12 +44,11 @@ public class MyPermissionResolver implements PermissionResolver {
 
         UserPermission perm = USER_PERMISSIONS.get(userId);
         if (perm == null) {
-            // Default: no access
+            // Unknown users are denied by default, not granted SELF access to records.
             return DataPermissionContext.builder()
                     .operatorUserId(userId)
-                    .scope(StandardDataScope.SELF)
+                    .scope(StandardDataScope.OWN_ORG)
                     .accessibleOrgIds(Collections.emptyList())
-                    .ownerUserId(userId)
                     .build();
         }
 
@@ -55,12 +57,13 @@ public class MyPermissionResolver implements PermissionResolver {
                 .scope(perm.scope)
                 .accessibleOrgIds(perm.accessibleOrgIds);
 
-        if (perm.scope == StandardDataScope.SELF) {
+        if (perm.scope.isSelf()) {
             builder.ownerUserId(userId);
         }
 
         return builder.build();
     }
 
-    private record UserPermission(StandardDataScope scope, Long orgId, List<Long> accessibleOrgIds) {}
+    private record UserPermission(DataScope scope, List<Long> accessibleOrgIds) {
+    }
 }

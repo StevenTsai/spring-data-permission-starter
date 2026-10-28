@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.github.steventsai</groupId>
         <artifactId>spring-data-permission-starter</artifactId>
-        <version>0.3.0</version>
+        <version>0.4.0</version>
     </parent>
 
     <artifactId>spring-data-permission-samples</artifactId>
@@ -22,7 +22,9 @@
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>
         <maven.install.skip>true</maven.install.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <maven.source.skip>true</maven.source.skip>
+        <jacoco.skip>true</jacoco.skip>
     </properties>
-
 
 </project>

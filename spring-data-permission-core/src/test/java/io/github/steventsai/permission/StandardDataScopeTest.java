@@ -3,6 +3,7 @@ package io.github.steventsai.permission;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class StandardDataScopeTest {
 
@@ -40,13 +41,46 @@ class StandardDataScopeTest {
     }
 
     @Test
-    void fromCode_unknownCode_returnsNull() {
-        assertThat(StandardDataScope.fromCode("UNKNOWN")).isNull();
+    void fromCode_unknownCode_throwsException() {
+        assertThatThrownBy(() -> StandardDataScope.fromCode("UNKNOWN"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unknown data scope code")
+                .hasMessageContaining("UNKNOWN");
     }
 
     @Test
-    void fromCode_emptyString_returnsNull() {
-        assertThat(StandardDataScope.fromCode("")).isNull();
+    void fromCode_blankCode_throwsException() {
+        assertThatThrownBy(() -> StandardDataScope.fromCode(""))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must not be blank");
+        assertThatThrownBy(() -> StandardDataScope.fromCode("   "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must not be blank");
+    }
+
+    @Test
+    void fromCode_isCaseInsensitiveAndTrimsWhitespace() {
+        assertThat(StandardDataScope.fromCode("all")).isEqualTo(StandardDataScope.ALL);
+        assertThat(StandardDataScope.fromCode(" own_org ")).isEqualTo(StandardDataScope.OWN_ORG);
+        assertThat(StandardDataScope.fromCode("Own_And_Children"))
+                .isEqualTo(StandardDataScope.OWN_AND_CHILDREN);
+        assertThat(StandardDataScope.fromCode("self")).isEqualTo(StandardDataScope.SELF);
+    }
+
+    @Test
+    void isAll_trueOnlyForAllScope() {
+        assertThat(StandardDataScope.ALL.isAll()).isTrue();
+        assertThat(StandardDataScope.OWN_ORG.isAll()).isFalse();
+        assertThat(StandardDataScope.OWN_AND_CHILDREN.isAll()).isFalse();
+        assertThat(StandardDataScope.SELF.isAll()).isFalse();
+    }
+
+    @Test
+    void isSelf_trueOnlyForSelfScope() {
+        assertThat(StandardDataScope.SELF.isSelf()).isTrue();
+        assertThat(StandardDataScope.ALL.isSelf()).isFalse();
+        assertThat(StandardDataScope.OWN_ORG.isSelf()).isFalse();
+        assertThat(StandardDataScope.OWN_AND_CHILDREN.isSelf()).isFalse();
     }
 
     @Test

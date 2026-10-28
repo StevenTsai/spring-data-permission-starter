@@ -116,4 +116,43 @@ class DefaultPermissionQueryBuilderTest {
         assertThatThrownBy(() -> builder.getSqlParams().put("newKey", "newValue"))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
+
+    @Test
+    void constructor_nullPermissionParams_throwsException() {
+        assertThatThrownBy(() -> new DefaultPermissionQueryBuilder<>(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessageContaining("permissionParams");
+    }
+
+    @Test
+    void param_reservedPermissionKey_throwsException() {
+        DefaultPermissionQueryBuilder<Object> builder = new DefaultPermissionQueryBuilder<>(baseParams);
+
+        assertThatThrownBy(() -> builder.param("authorizedOrgIds", java.util.List.of(1L)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("reserved");
+        assertThatThrownBy(() -> builder.param("_orgIdColumn", "other_column"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("reserved");
+    }
+
+    @Test
+    void params_reservedPermissionKey_throwsException() {
+        DefaultPermissionQueryBuilder<Object> builder = new DefaultPermissionQueryBuilder<>(baseParams);
+
+        assertThatThrownBy(() -> builder.params(Map.of("_scope", "ALL")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("reserved");
+    }
+
+    @Test
+    void getSqlParams_returnsSnapshot() {
+        DefaultPermissionQueryBuilder<Object> builder = new DefaultPermissionQueryBuilder<>(baseParams);
+        Map<String, Object> before = builder.getSqlParams();
+
+        builder.param("status", "active");
+
+        assertThat(before).doesNotContainKey("status");
+        assertThat(builder.getSqlParams()).containsEntry("status", "active");
+    }
 }

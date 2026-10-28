@@ -153,4 +153,184 @@ class DataPermissionContextTest {
         // Context should still have the original 2 elements
         assertThat(context.getAccessibleOrgIds()).containsExactly(10L, 20L);
     }
+
+    @Test
+    void builder_immutableOrgIdList_isAccepted() {
+        // Regression: List.of(...) throws NPE from contains(null) on immutable lists.
+        DataPermissionContext context = DataPermissionContext.builder()
+                .operatorUserId(1L)
+                .scope(StandardDataScope.OWN_ORG)
+                .accessibleOrgIds(List.of(10L, 20L))
+                .build();
+
+        assertThat(context.getAccessibleOrgIds()).containsExactly(10L, 20L);
+    }
+
+    @Test
+    void builder_duplicateOrgIds_areDeduplicatedPreservingOrder() {
+        DataPermissionContext context = DataPermissionContext.builder()
+                .operatorUserId(1L)
+                .scope(StandardDataScope.OWN_ORG)
+                .accessibleOrgIds(Arrays.asList(20L, 10L, 20L, 30L, 10L))
+                .build();
+
+        assertThat(context.getAccessibleOrgIds()).containsExactly(20L, 10L, 30L);
+    }
+
+    @Test
+    void builder_nullOrgIdElement_throwsException() {
+        assertThatThrownBy(() -> DataPermissionContext.builder()
+                .operatorUserId(1L)
+                .scope(StandardDataScope.OWN_ORG)
+                .accessibleOrgIds(Arrays.asList(10L, null))
+                .build())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("null elements")
+                .hasMessageContaining("OWN_ORG");
+    }
+
+    @Test
+    void builder_emptyOrgIds_isDenyAll() {
+        DataPermissionContext context = DataPermissionContext.builder()
+                .operatorUserId(1L)
+                .scope(StandardDataScope.OWN_ORG)
+                .accessibleOrgIds(Collections.emptyList())
+                .build();
+
+        assertThat(context.getAccessibleOrgIds()).isEmpty();
+        assertThat(context.isDenyAll()).isTrue();
+    }
+
+    @Test
+    void builder_nonEmptyOrgIds_isNotDenyAll() {
+        DataPermissionContext context = DataPermissionContext.builder()
+                .operatorUserId(1L)
+                .scope(StandardDataScope.OWN_ORG)
+                .accessibleOrgIds(List.of(10L))
+                .build();
+
+        assertThat(context.isDenyAll()).isFalse();
+    }
+
+    @Test
+    void builder_allScope_ignoresOrgIdsAndOwner() {
+        DataPermissionContext context = DataPermissionContext.builder()
+                .operatorUserId(1L)
+                .scope(StandardDataScope.ALL)
+                .accessibleOrgIds(List.of(10L))
+                .ownerUserId(99L)
+                .build();
+
+        assertThat(context.getAccessibleOrgIds()).isNull();
+        assertThat(context.getOwnerUserId()).isNull();
+        assertThat(context.isDenyAll()).isFalse();
+    }
+
+    @Test
+    void builder_selfScope_nullOrgIds_becomesEmptyList() {
+        DataPermissionContext context = DataPermissionContext.builder()
+                .operatorUserId(1L)
+                .scope(StandardDataScope.SELF)
+                .ownerUserId(1L)
+                .build();
+
+        assertThat(context.getAccessibleOrgIds()).isEmpty();
+        assertThat(context.isDenyAll()).isFalse();
+    }
+
+    @Test
+    void builder_blankScopeCode_throwsException() {
+        DataScope blankScope = new DataScope() {
+            @Override
+            public String getCode() {
+                return " ";
+            }
+        };
+
+        assertThatThrownBy(() -> DataPermissionContext.builder()
+                .operatorUserId(1L)
+                .scope(blankScope)
+                .accessibleOrgIds(Collections.emptyList())
+                .build())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("getCode()");
+    }
+
+    @Test
+    void builder_customOrgScope_requiresOrgIds() {
+        assertThatThrownBy(() -> DataPermissionContext.builder()
+                .operatorUserId(1L)
+                .scope(new CustomOrgScope())
+                .build())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("accessibleOrgIds")
+                .hasMessageContaining("CUSTOM_ORG");
+    }
+
+    @Test
+    void builder_customAllScope_needsNoOrgIds() {
+        DataPermissionContext context = DataPermissionContext.builder()
+                .operatorUserId(1L)
+                .scope(new CustomAllScope())
+                .build();
+
+        assertThat(context.isAllScope()).isTrue();
+        assertThat(context.isSelfScope()).isFalse();
+    }
+
+    @Test
+    void builder_customSelfScope_requiresOwnerUserId() {
+        assertThatThrownBy(() -> DataPermissionContext.builder()
+                .operatorUserId(1L)
+                .scope(new CustomSelfScope())
+                .build())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("ownerUserId")
+                .hasMessageContaining("CUSTOM_SELF");
+    }
+
+    @Test
+    void toString_containsResolvedValues() {
+        DataPermissionContext context = DataPermissionContext.builder()
+                .operatorUserId(7L)
+                .scope(StandardDataScope.OWN_ORG)
+                .accessibleOrgIds(List.of(10L))
+                .build();
+
+        assertThat(context.toString())
+                .contains("operatorUserId=7")
+                .contains("scope=OWN_ORG")
+                .contains("accessibleOrgIds=[10]");
+    }
+
+    private static final class CustomOrgScope implements DataScope {
+        @Override
+        public String getCode() {
+            return "CUSTOM_ORG";
+        }
+    }
+
+    private static final class CustomAllScope implements DataScope {
+        @Override
+        public String getCode() {
+            return "CUSTOM_ALL";
+        }
+
+        @Override
+        public boolean isAll() {
+            return true;
+        }
+    }
+
+    private static final class CustomSelfScope implements DataScope {
+        @Override
+        public String getCode() {
+            return "CUSTOM_SELF";
+        }
+
+        @Override
+        public boolean isSelf() {
+            return true;
+        }
+    }
 }
